@@ -64,6 +64,17 @@ public abstract class Tablero {
         }
     }
     
+    // Método para cargar el estado del tablero
+    public void cargarEstado(int movimientos, int puntos, String[][] tablero, boolean[][] adivinado) {
+        this.movimientos = movimientos;
+        this.puntos = puntos;
+        for (int i = 0; i < this.tamano; i++) {
+            for (int j = 0; j < this.tamano; j++) {
+                this.tablero[i][j] = tablero[i][j];
+                this.adivinado[i][j] = adivinado[i][j];
+            }
+        }
+    }
     //Para cuando se quiere empezar de 0, se borran los datos y se devuelve nuevo tablero
     public void reiniciarTalero(){
         movimientos = 0;

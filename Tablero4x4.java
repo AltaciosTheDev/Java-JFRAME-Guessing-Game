@@ -23,7 +23,7 @@ public class Tablero4x4 extends Tablero{
             //al final el arreglo queda con pares del 0 a 7 en posiciones consecutivas
             datos[2 *i ] = String.valueOf(i); 
             datos[2 * i + 1] = String.valueOf(i);
-            //
+            //[0,0,1,1,2,2,3,3,4,4,5,5,6,6,7,7]
         } 
         
         //Sortear aleatorio los datos en arreglo de datos 

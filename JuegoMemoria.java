@@ -7,6 +7,9 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import javax.swing.filechooser.FileNameExtensionFilter;
+import java.io.*;
+
 /**
  *
  * @author enzoa
@@ -23,13 +26,15 @@ public class JuegoMemoria extends javax.swing.JFrame {
     private int[] firstSelection = {-1, -1}; // Para guardar la primera selección del jugador
 
     // Labels para estadísticas
-    private JLabel movimientosLabel;
-    private JLabel puntosLabel;
+    private JLabel movimientosLabel; //etiqueta para mostrar el numero de movimientos 
+    private JLabel puntosLabel; //etiqueta para mostrar los puntos del jugador  
     
     public JuegoMemoria() {
         initComponents();
         setSize(700, 700); // Example size; adjust as needed
         setLocationRelativeTo(null); // Center the JFrame on the screen
+        FileNameExtensionFilter filter = new FileNameExtensionFilter("Archivos de texto", "txt");
+        jFileChooser.setFileFilter(filter);
     }
 
     /**
@@ -40,9 +45,9 @@ public class JuegoMemoria extends javax.swing.JFrame {
     @SuppressWarnings("unchecked")
     
     private void showSubMenu(int size) {
-        mainPanel.removeAll();
+        mainPanel.removeAll(); // borra cualquier contenido previo que se encontraba en mainpanel
 
-        JPanel subMenuPanel = new JPanel();
+        JPanel subMenuPanel = new JPanel(); //secrea un nuevo subpanel que va a tener los botones de continuar y crear nuevo nuevo
         subMenuPanel.setLayout(new GridLayout(2, 1));
 
         JButton btnContinue = new JButton("Continuar");
@@ -64,23 +69,85 @@ public class JuegoMemoria extends javax.swing.JFrame {
         subMenuPanel.add(btnContinue);     
         subMenuPanel.add(btnNew);      
 
-        mainPanel.add(subMenuPanel, BorderLayout.CENTER);
-        mainPanel.revalidate();
+        mainPanel.add(subMenuPanel, BorderLayout.CENTER); //agregamos el submenupanel al mainpanel 
+        mainPanel.revalidate(); //
         mainPanel.repaint();
     }
     
+        // Método para obtener la ruta según el tamaño del tablero
+    private String obtenerRuta(int size) {
+        switch (size) {
+            case 4:
+                return "C:\\Users\\enzoa\\OneDrive\\Documents\\Informatica Ceutec\\Tri(abril 2024)\\Programacion 2\\ProyectoJuego\\estadisticas4x4.txt";
+            case 6:
+                return "C:\\Users\\enzoa\\OneDrive\\Documents\\Informatica Ceutec\\Tri(abril 2024)\\Programacion 2\\ProyectoJuego\\estadisticas6x6.txt";
+            case 8:
+                return "C:\\Users\\enzoa\\OneDrive\\Documents\\Informatica Ceutec\\Tri(abril 2024)\\Programacion 2\\ProyectoJuego\\estadisticas8x8.txt";
+            default:
+                throw new IllegalArgumentException("Tamaño de tablero no soportado");
+        }
+    }
+    
     // Método para cargar un juego existente
+     // Método para cargar un juego existente
     private void loadGame(int size) {
-        // Aquí podrías cargar el estado del juego desde un archivo o base de datos
-        // Para este ejemplo, simplemente reiniciaremos el tablero
-        newGame(size);
+        String ruta = obtenerRuta(size);
+        File file = new File(ruta);
+
+        if (file.exists()) {
+            try (BufferedReader br = new BufferedReader(new FileReader(file))) {
+                String linea;
+                String[] datos;
+
+                linea = br.readLine();
+                int movimientos = Integer.parseInt(linea.split(":")[1].trim());
+                linea = br.readLine();
+                int puntos = Integer.parseInt(linea.split(":")[1].trim());
+
+                boolean[][] guessed = new boolean[size][size];
+                String[][] board = new String[size][size];
+
+                for (int i = 0; i < size; i++) {
+                    for (int j = 0; j < size; j++) {
+                        linea = br.readLine();
+                        datos = linea.split(",");
+                        board[i][j] = datos[0];
+                        guessed[i][j] = Boolean.parseBoolean(datos[1]);
+                    }
+                }
+
+                switch (size) {
+                    case 4:
+                        tablero = new Tablero4x4();
+                        break;
+                    case 6:
+                        tablero = new Tablero6x6();
+                        break;
+                    case 8:
+                        tablero = new Tablero8x8();
+                        break;
+                    default:
+                        throw new IllegalArgumentException("Tamaño de tablero no soportado");
+                }
+
+                tablero.cargarEstado(movimientos, puntos, board, guessed);
+                displayBoard();
+                movimientosLabel.setText("Movimientos: " + movimientos);
+                puntosLabel.setText("Puntos: " + puntos);
+                JOptionPane.showMessageDialog(this, "Juego cargado correctamente.");
+            } catch (IOException e) {
+                JOptionPane.showMessageDialog(this, "Error al cargar el juego: " + e.getMessage());
+            }
+        } else {
+            JOptionPane.showMessageDialog(this, "No se encontró un juego guardado para este tamaño de tablero.");
+        }
     }
 
     // Método para iniciar un nuevo juego
     private void newGame(int size) {
         switch (size) {
             case 4:
-                tablero = new Tablero4x4();
+                tablero = new Tablero4x4(); //creamos el tablero necesario dependiendo de la opcion que fue escogida
                 break;
             case 6:
                 tablero = new Tablero6x6();
@@ -89,13 +156,13 @@ public class JuegoMemoria extends javax.swing.JFrame {
                 tablero = new Tablero8x8();
                 break;
             default:
-                throw new IllegalArgumentException("Tamaño de tablero no soportado");
+                throw new IllegalArgumentException("Tamaño de tablero no soportado"); // no va pasar pero si es un juego no soportado por el creador
         }
-        displayBoard();
+        displayBoard(); //funcion que va a poner el juego en la pantalla 
     }
     
     private void displayBoard() {
-        mainPanel.removeAll();
+        mainPanel.removeAll(); //nuevamente se elimina lo que se habia puesto previamente en la pantalla 
         int size = tablero.getTamano();
         mainPanel.setLayout(new GridLayout(size + 1, size));
 
@@ -119,8 +186,7 @@ public class JuegoMemoria extends javax.swing.JFrame {
         guardarButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                // Código para guardar el juego
-                JOptionPane.showMessageDialog(JuegoMemoria.this, "Guardando el juego... (A implementar)");
+                guardarJuego();
             }
         });
         
@@ -130,6 +196,7 @@ public class JuegoMemoria extends javax.swing.JFrame {
         mainPanel.add(guardarButton);
         mainPanel.add(salirButton);
         
+        //solo son espacios vacios para rellenar la fila de controles
         if(size == 6){
             mainPanel.add(new JLabel());
             mainPanel.add(new JLabel());
@@ -141,69 +208,71 @@ public class JuegoMemoria extends javax.swing.JFrame {
             mainPanel.add(new JLabel());
         }
         
-        botones = new JButton[size][size];
+        //el array de botones que declaramos al inicio 
+        botones = new JButton[size][size];// cuando llamamos el constructor del array es que se debe indicar el tamano que va tener 
 
-        String[][] board = tablero.getTablero();
-        boolean[][] guessed = tablero.getAdivinado();
+        String[][] board = tablero.getTablero(); //pedimos de regreso la referencia de donde esta tablero en memoria 
+        boolean[][] guessed = tablero.getAdivinado(); //pedimos donde estan guardados los adivinados en memoria 
 
-        for (int i = 0; i < size; i++) {
+        for (int i = 0; i < size; i++) { 
             for (int j = 0; j < size; j++) {
-                JButton button = new JButton();
-                botones[i][j] = button;
+                JButton button = new JButton(); //iteramos nuestro arreglo bidi y vamos creando un Jboton button por iteraciones 
+                botones[i][j] = button; //asignamos el nuevo boton creado a nuestro arreglo botones que almacenara Jbuttons
 
-                if (guessed[i][j]) {
+                if (guessed[i][j]) { //si en el arreglo guessed[i][j] es verdadero(osea si ya se adivino esa posicion) entonces le ponemos el texto al boton de lo que tenga el board
                     button.setText(board[i][j]);
                 } else {
-                    button.setText("");
+                    button.setText(""); //de lo contrario el boton se queda con el texto vacio
                 }
 
-                int x = i;
-                int y = j;
+                int x = i; //por como se creo el programa, i se vuelve x 
+                int y = j; //por como se creo el programa, i se vuelve y 
                 button.addActionListener(new ActionListener() {
                     @Override
-                    public void actionPerformed(ActionEvent e) {
-                        handleButtonClick(x, y);
+                    public void actionPerformed(ActionEvent e) { //cada boton creado tendra su ActionListener donde llamara a la funcion handleButtonClick(x,y)
+                        handleButtonClick(x, y); //esta es la funcion que se llamara por boton y siempre se pasara x y y que es donde el boton se encuentra ubicado
                     }
                 });
 
-                mainPanel.add(button);
+                mainPanel.add(button); //agregamos cada boton al panel 
             }
         }
 
-        mainPanel.revalidate();
-        mainPanel.repaint();
+        mainPanel.revalidate(); //validamos 
+        mainPanel.repaint(); //actualizamos panel 
     }
 
-    private void handleButtonClick(int x, int y) {
-        if (firstSelection[0] == -1) {
+    private void handleButtonClick(int x, int y) { //recibimos aqui la posicion x y y de nuestro boton apretado
+        if (firstSelection[0] == -1) { //teniamos una variable global firstSeleccion, si esta es -1 significa que este es el primer boton que apretamos 
             // Primera selección
-            firstSelection[0] = x;
-            firstSelection[1] = y;
-            botones[x][y].setText(tablero.getTablero()[x][y]);
-        } else {
+            firstSelection[0] = x; //firstSelccion guarda x 
+            firstSelection[1] = y; //firstSeleccion guarda y 
+            botones[x][y].setText(tablero.getTablero()[x][y]); //al apretar el boton, entonces el texto de ese se vuelve el texto de la misma posicion en el arreglo tablero
+        } else { //al apretar el segundo boton, se pasa por algo el if al no ser firstseleccion, entonces solo guarda el texto de la posicion del tablero en el boton
             // Segunda selección
             botones[x][y].setText(tablero.getTablero()[x][y]);
 
-            if (tablero.verificarPar(firstSelection[0], firstSelection[1], x, y)) {
+            //para el primer click no pasa la verificacion, solo pasa al segundo click.
+            if (tablero.verificarPar(firstSelection[0], firstSelection[1], x, y)) {  //pasamos firstSeleccion[0], [1], y lo que tenemos en x y y y se llama el metodoVerificarPar.
                 // Si es un par correcto
-                JOptionPane.showMessageDialog(this, "¡Par correcto!");
-            } else {
+                JOptionPane.showMessageDialog(this, "¡Par correcto!"); //si devuelve True entonces mostramos un joptionpane
+            } else { //si es falso mostramos otro joptionpane
                 // Si no es un par correcto
                 JOptionPane.showMessageDialog(this, "No es un par. Intenta de nuevo.");
-                botones[firstSelection[0]][firstSelection[1]].setText("");
-                botones[x][y].setText("");
+                botones[firstSelection[0]][firstSelection[1]].setText(""); //si adivinamos mal, se devuelve el texto del primero boton a ""
+                botones[x][y].setText(""); //si adivinamos mal se devuelve el texto del segundo boton a "" 
             }
 
             // Restablecer selección
-            firstSelection[0] = -1;
-            firstSelection[1] = -1;
+            firstSelection[0] = -1; //reestablecemos firstSeleccion para que nuevamente se pueda entrar a la primera parte del if 
+            firstSelection[1] = -1;//reestablecemos firstSeleccion para que nuevamente se pueda entrar a la primera parte del if 
         }
 
         // Actualizar estadísticas de movimientos y puntos
-        actualizarEstadisticas();
+        actualizarEstadisticas(); //despues de cada click en boton, se busca actualizar estadisticas. 
 
         // Verificar si el juego se ha ganado
-        if (juegoGanado()) {
+        if (juegoGanado()) { //si se gana el juego se sale del juego.
             JOptionPane.showMessageDialog(this, "¡Felicidades! Has ganado el juego.");
             System.exit(0);
         }
@@ -211,12 +280,12 @@ public class JuegoMemoria extends javax.swing.JFrame {
 
     private void actualizarEstadisticas() {
         // Actualizar etiquetas de movimientos y puntos
-        movimientosLabel.setText("Movimientos: " + tablero.getMovimientos());
-        puntosLabel.setText("Puntos: " + tablero.getPuntos());
+        movimientosLabel.setText("Movimientos: " + tablero.getMovimientos()); //actualiza etiqueta con dato de movimientos que maneja el objeto
+        puntosLabel.setText("Puntos: " + tablero.getPuntos()); //actualiza puntos con dato de puntos que maneja el objeto
     }
 
     private boolean juegoGanado() {
-        boolean[][] guessed = tablero.getAdivinado();
+        boolean[][] guessed = tablero.getAdivinado(); //un loop que itera en todo el arreglo de adivinados, por cada iteracion debe regresar true, si uno no regresa true se sale con falso
         for (int i = 0; i < guessed.length; i++) {
             for (int j = 0; j < guessed[i].length; j++) {
                 if (!guessed[i][j]) {
@@ -227,20 +296,58 @@ public class JuegoMemoria extends javax.swing.JFrame {
         return true;
     }
     
+        private void guardarJuego() {
+            String ruta = "";
+
+            switch (tablero.getTamano()) {
+                case 4:
+                    ruta = "C:\\Users\\enzoa\\OneDrive\\Documents\\Informatica Ceutec\\Tri(abril 2024)\\Programacion 2\\ProyectoJuego\\estadisticas4x4.txt";
+                    break;
+                case 6:
+                    ruta = "C:\\Users\\enzoa\\OneDrive\\Documents\\Informatica Ceutec\\Tri(abril 2024)\\Programacion 2\\ProyectoJuego\\estadisticas6x6.txt";
+                    break;
+                case 8:
+                    ruta = "C:\\Users\\enzoa\\OneDrive\\Documents\\Informatica Ceutec\\Tri(abril 2024)\\Programacion 2\\ProyectoJuego\\estadisticas8x8.txt";
+                    break;
+                default:
+                    JOptionPane.showMessageDialog(this, "Tamaño de tablero no soportado para guardar.");
+                    return;
+            }
+
+            File file = new File(ruta);
+            try (BufferedWriter bw = new BufferedWriter(new FileWriter(file))) {
+                bw.write("Movimientos: " + tablero.getMovimientos() + "\n");
+                bw.write("Puntos: " + tablero.getPuntos() + "\n");
+
+                String[][] board = tablero.getTablero();
+                boolean[][] guessed = tablero.getAdivinado();
+                for (int i = 0; i < board.length; i++) {
+                    for (int j = 0; j < board[i].length; j++) {
+                        bw.write(board[i][j] + "," + guessed[i][j] + "\n");
+                    }
+                }
+
+                JOptionPane.showMessageDialog(this, "Juego guardado correctamente.");
+            } catch (IOException e) {
+                JOptionPane.showMessageDialog(this, "Error al guardar el juego: " + e.getMessage());
+            }
+        }
+    
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
         buttonGroup1 = new javax.swing.ButtonGroup();
+        jFileChooser = new javax.swing.JFileChooser();
         mainPanel = new javax.swing.JPanel();
         jLabel1 = new javax.swing.JLabel();
         radioButton4x4 = new javax.swing.JRadioButton();
         radioButton6x6 = new javax.swing.JRadioButton();
         radioButton8x8 = new javax.swing.JRadioButton();
-        salirBoton = new javax.swing.JButton();
         aceptarBoton = new javax.swing.JButton();
+        salirBoton = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
-        getContentPane().setLayout(new java.awt.GridLayout());
+        getContentPane().setLayout(new java.awt.GridLayout(1, 0));
 
         mainPanel.setOpaque(false);
         mainPanel.setLayout(new java.awt.GridLayout(6, 1));
@@ -279,15 +386,6 @@ public class JuegoMemoria extends javax.swing.JFrame {
         });
         mainPanel.add(radioButton8x8);
 
-        salirBoton.setFont(new java.awt.Font("Segoe UI", 0, 18)); // NOI18N
-        salirBoton.setText("Salir");
-        salirBoton.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                salirBotonActionPerformed(evt);
-            }
-        });
-        mainPanel.add(salirBoton);
-
         aceptarBoton.setFont(new java.awt.Font("Segoe UI", 0, 18)); // NOI18N
         aceptarBoton.setText("Aceptar");
         aceptarBoton.addActionListener(new java.awt.event.ActionListener() {
@@ -296,6 +394,15 @@ public class JuegoMemoria extends javax.swing.JFrame {
             }
         });
         mainPanel.add(aceptarBoton);
+
+        salirBoton.setFont(new java.awt.Font("Segoe UI", 0, 18)); // NOI18N
+        salirBoton.setText("Salir");
+        salirBoton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                salirBotonActionPerformed(evt);
+            }
+        });
+        mainPanel.add(salirBoton);
 
         getContentPane().add(mainPanel);
 
@@ -373,6 +480,7 @@ public class JuegoMemoria extends javax.swing.JFrame {
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton aceptarBoton;
     private javax.swing.ButtonGroup buttonGroup1;
+    private javax.swing.JFileChooser jFileChooser;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JPanel mainPanel;
     private javax.swing.JRadioButton radioButton4x4;
